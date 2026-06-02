@@ -1,36 +1,133 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# LessonForge
 
-## Getting Started
+**Collaborative lesson plan studio for educators** — built for the [House of Edtech](https://houseofedtech.com) Fullstack Developer Assignment (Jan 2026).
 
-First, run the development server:
+LessonForge goes beyond generic CRUD: lesson entities model **pedagogy** (objectives, instructional flow, assessment, standards), support **draft / private / public** visibility, and include an optional **AI instructional coach** for differentiation and formative assessment ideas.
+
+## Stack
+
+| Layer | Technology |
+|-------|------------|
+| Framework | Next.js 16 (App Router, Server Actions, SSR) |
+| Language | TypeScript |
+| UI | Tailwind CSS 4, Radix primitives, custom shadcn-style components |
+| Database | PostgreSQL + Drizzle ORM |
+| Auth | Auth.js (NextAuth v5) — JWT + credentials |
+| AI (optional) | Vercel AI SDK + Groq (Llama 3.3) |
+| Testing | Vitest (unit) |
+| CI/CD | GitHub Actions → Vercel |
+
+## Quick start
+
+### 1. Prerequisites
+
+- Node.js 20.9+
+- Docker (for local PostgreSQL) or a hosted Postgres URL
+
+### 2. Environment
+
+Edit the single **`.env`** file in the project root (gitignored). Next.js and CLI scripts (`db:migrate`, etc.) read it automatically.
+
+| Variable | Local | Production (Vercel) |
+|----------|-------|------------------------|
+| `DATABASE_URL` | Docker URL on port 5433 | Vercel Postgres / Neon connection string |
+| `AUTH_SECRET` | Any long random string | New secret (`openssl rand -base64 32`) |
+| `NEXT_PUBLIC_AUTHOR_NAME` | Your name | Same |
+| `NEXT_PUBLIC_GITHUB_URL` | Your GitHub | Same |
+| `NEXT_PUBLIC_LINKEDIN_URL` | Your LinkedIn | Same |
+| `GROQ_API_KEY` | Free from [Groq Console](https://console.groq.com/keys) | Same |
+
+Do not commit `.env`. For production, set the same keys in the Vercel project **Settings → Environment Variables**.
+
+### 3. Database
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+docker compose up -d
+npm run db:migrate
+npm run db:seed   # optional demo user
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Demo credentials after seed: `demo@lessonforge.app` / `DemoPass1`
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+#### Database troubleshooting
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+If you see `password authentication failed for user "lessonforge"`:
 
-## Learn More
+1. **Port conflict** — This project maps Docker Postgres to **port 5433** so it does not clash with a local PostgreSQL on 5432. Ensure `.env` has:
+   `postgresql://lessonforge:lessonforge@localhost:5433/lessonforge`
+2. **Start the container** — `docker compose up -d` (Docker Desktop must be running).
+3. **Apply schema** — `npm run db:migrate` then optionally `npm run db:seed`.
+4. **Custom Postgres** — If you use your own server, set `DATABASE_URL` to your user, password, host, and database name instead.
 
-To learn more about Next.js, take a look at the following resources:
+### 4. Run
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+npm install
+npm run dev
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Open [http://localhost:3000](http://localhost:3000).
 
-## Deploy on Vercel
+## Features (assignment mapping)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+| Requirement | Implementation |
+|-------------|----------------|
+| Next.js 16 + TypeScript | App Router, Server Actions, typed Drizzle schema |
+| PostgreSQL CRUD | Lesson plans — create, read, update, delete with Zod validation |
+| Not a basic todo app | Pedagogy-first lesson model + community gallery |
+| Tailwind UI | Responsive layout, accessible labels, focus states |
+| Auth (good to have) | Register / login, owner-only edit & delete |
+| AI (optional) | `/api/ai/suggest` — differentiation & assessment coaching |
+| Security | bcrypt passwords, authorization checks, [SECURITY.md](./SECURITY.md) |
+| Testing | `npm run test:unit` |
+| CI/CD | `.github/workflows/ci.yml` |
+| Deployment | Vercel-ready (see below) |
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Deploy to Vercel
+
+1. Push this repo to GitHub (`.env` stays local; it is not pushed).
+2. Import the project in [Vercel](https://vercel.com).
+3. Add **Vercel Postgres** (or Neon) and copy the same variable names from your local `.env` into Vercel.
+4. Run migrations against production (once):
+
+   ```bash
+   DATABASE_URL="your-production-url" npm run db:migrate
+   ```
+
+6. Deploy — Vercel builds with `next build` automatically.
+
+GitHub Actions runs lint, unit tests, and build on every push/PR.
+
+## Project structure
+
+```
+src/
+  app/           # Routes (pages + API)
+  actions/       # Server Actions (CRUD, auth)
+  components/    # UI + lesson components
+  lib/           # db, auth, validations
+drizzle/         # SQL migrations
+.github/         # CI workflow
+```
+
+## Scripts
+
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Development server |
+| `npm run build` | Production build |
+| `npm run db:migrate` | Apply SQL migration |
+| `npm run db:seed` | Seed demo educator + public lesson |
+| `npm run test:unit` | Vitest |
+| `npm run test` | Same as `test:unit` |
+
+## Submission checklist
+
+- [ ] Set footer vars in `.env` locally and in Vercel (`NEXT_PUBLIC_*`)
+- [ ] Deploy to Vercel and add live URL to README / submission
+- [ ] Share GitHub repository link
+- [ ] (Optional) Add `GROQ_API_KEY` on Vercel for AI coach
+
+## License
+
+MIT — submission project for interview purposes.

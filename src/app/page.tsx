@@ -1,65 +1,113 @@
-import Image from "next/image";
+import Link from "next/link";
+import { auth } from "@/lib/auth";
+import { getPublicLessons } from "@/actions/lessons";
+import { LessonCard } from "@/components/lessons/lesson-card";
+import { Button } from "@/components/ui/button";
+import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { safeQuery } from "@/lib/db/safe-query";
 
-export default function Home() {
+export const dynamic = "force-dynamic";
+
+export default async function HomePage() {
+  const session = await auth();
+  const lessonsResult = await safeQuery(() => getPublicLessons());
+  const featured = lessonsResult.ok ? lessonsResult.data.slice(0, 3) : [];
+  const dbError = lessonsResult.ok ? null : lessonsResult.message;
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <div>
+      {dbError && (
+        <div
+          className="border-b border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-100"
+          role="alert"
+        >
+          {dbError}
+        </div>
+      )}
+      <section className="border-b border-slate-200 bg-gradient-to-b from-indigo-50 to-slate-50 dark:border-slate-800 dark:from-indigo-950/40 dark:to-slate-950">
+        <div className="mx-auto max-w-6xl px-4 py-16 md:py-24">
+          <p className="mb-3 text-sm font-semibold uppercase tracking-wide text-indigo-600">
+            House of Edtech · Fullstack Assignment
           </p>
+          <h1 className="max-w-3xl text-4xl font-bold tracking-tight text-slate-900 md:text-5xl dark:text-white">
+            Lesson plans that scale from ideation to classroom impact
+          </h1>
+          <p className="mt-4 max-w-2xl text-lg text-slate-600 dark:text-slate-300">
+            LessonForge helps educators craft structured lesson plans with objectives,
+            activities, and assessments—then share vetted resources with peers. AI
+            coaching accelerates differentiation without replacing your expertise.
+          </p>
+          <div className="mt-8 flex flex-wrap gap-3">
+            {session?.user ? (
+              <Button asChild size="lg">
+                <Link href="/lessons/new">Create a lesson plan</Link>
+              </Button>
+            ) : (
+              <Button asChild size="lg">
+                <Link href="/register">Get started free</Link>
+              </Button>
+            )}
+            <Button asChild variant="outline" size="lg">
+              <Link href="/explore">Browse community plans</Link>
+            </Button>
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+      </section>
+
+      <section className="mx-auto max-w-6xl px-4 py-16">
+        <h2 className="text-2xl font-semibold">Why this is not &quot;another CRUD app&quot;</h2>
+        <div className="mt-8 grid gap-6 md:grid-cols-3">
+          {[
+            {
+              title: "Pedagogy-first data model",
+              body: "Lessons capture objectives, instructional flow, and assessment—not generic title/description fields.",
+            },
+            {
+              title: "Visibility & trust",
+              body: "Draft, private, and public states let educators iterate safely before publishing to the gallery.",
+            },
+            {
+              title: "AI as coach, not autopilot",
+              body: "On-demand differentiation and formative assessment suggestions grounded in your lesson context.",
+            },
+          ].map((item) => (
+            <Card key={item.title}>
+              <CardHeader>
+                <CardTitle className="text-base">{item.title}</CardTitle>
+                <CardDescription>{item.body}</CardDescription>
+              </CardHeader>
+            </Card>
+          ))}
         </div>
-      </main>
+      </section>
+
+      {featured.length > 0 && (
+        <section className="border-t border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950">
+          <div className="mx-auto max-w-6xl px-4 py-16">
+            <div className="mb-8 flex items-end justify-between gap-4">
+              <div>
+                <h2 className="text-2xl font-semibold">Featured from the community</h2>
+                <p className="mt-1 text-slate-600 dark:text-slate-400">
+                  Public lesson plans shared by educators.
+                </p>
+              </div>
+              <Link href="/explore" className="text-sm font-medium text-indigo-600 hover:underline">
+                View all
+              </Link>
+            </div>
+            <div className="grid gap-6 md:grid-cols-3">
+              {featured.map(({ lesson, authorName }) => (
+                <LessonCard
+                  key={lesson.id}
+                  lesson={lesson}
+                  authorName={authorName}
+                  showAuthor
+                />
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
     </div>
   );
 }

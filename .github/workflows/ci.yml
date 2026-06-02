@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: lessonforge
+          POSTGRES_PASSWORD: lessonforge
+          POSTGRES_DB: lessonforge
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U lessonforge"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://lessonforge:lessonforge@localhost:5432/lessonforge
+      # CI Postgres service listens on 5432 inside the job (not Docker Compose port mapping)
+      AUTH_SECRET: ci-test-auth-secret-min-32-chars-long
+      NEXT_PUBLIC_AUTHOR_NAME: CI User
+      NEXT_PUBLIC_GITHUB_URL: https://github.com/example
+      NEXT_PUBLIC_LINKEDIN_URL: https://www.linkedin.com/in/example
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - run: npm ci
+
+      - name: Apply database migrations
+        run: npm run db:migrate
+
+      - run: npm run lint
+      - run: npm run test:unit
+      - run: npm run build
