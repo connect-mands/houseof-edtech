@@ -1,17 +1,33 @@
 /** Shared Postgres.js options for local Docker, Neon, and Vercel. */
 export function getDatabaseUrl(): string | undefined {
-  const url =
-    process.env.DATABASE_URL?.trim() ||
-    process.env.POSTGRES_URL?.trim() ||
-    process.env.POSTGRES_PRISMA_URL?.trim();
-  return url && url.length > 0 ? url : undefined;
+  const candidates = [
+    process.env.DATABASE_URL?.trim(),
+    process.env.POSTGRES_URL?.trim(),
+    process.env.POSTGRES_PRISMA_URL?.trim(),
+  ].filter((url): url is string => Boolean(url && url.length > 0));
+
+  if (candidates.length === 0) return undefined;
+
+  // On Vercel, prefer a cloud URL if DATABASE_URL was left as localhost by mistake.
+  if (isVercelRuntime()) {
+    const cloud = candidates.find((url) => !isLocalDatabaseUrl(url));
+    if (cloud) return cloud;
+  }
+
+  return candidates[0];
 }
 
 export function getDatabaseUrlSource(): "DATABASE_URL" | "POSTGRES_URL" | "POSTGRES_PRISMA_URL" | "none" {
-  if (process.env.DATABASE_URL?.trim()) return "DATABASE_URL";
-  if (process.env.POSTGRES_URL?.trim()) return "POSTGRES_URL";
-  if (process.env.POSTGRES_PRISMA_URL?.trim()) return "POSTGRES_PRISMA_URL";
-  return "none";
+  const url = getDatabaseUrl();
+  if (!url) return "none";
+  if (process.env.DATABASE_URL?.trim() === url) return "DATABASE_URL";
+  if (process.env.POSTGRES_URL?.trim() === url) return "POSTGRES_URL";
+  if (process.env.POSTGRES_PRISMA_URL?.trim() === url) return "POSTGRES_PRISMA_URL";
+  // Resolved from a different env var than DATABASE_URL (e.g. Neon POSTGRES_URL on Vercel)
+  if (process.env.POSTGRES_URL?.trim() && !isLocalDatabaseUrl(process.env.POSTGRES_URL)) {
+    return "POSTGRES_URL";
+  }
+  return "DATABASE_URL";
 }
 
 export function isLocalDatabaseUrl(url: string): boolean {
