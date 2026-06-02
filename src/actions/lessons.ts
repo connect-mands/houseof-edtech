@@ -101,10 +101,10 @@ export async function updateLesson(
   redirect(`/lessons/${lessonId}`);
 }
 
-export async function deleteLesson(lessonId: string) {
+export async function deleteLesson(lessonId: string): Promise<void> {
   const session = await auth();
   if (!session?.user?.id) {
-    return { success: false, message: "Sign in required." };
+    redirect("/login");
   }
 
   await db

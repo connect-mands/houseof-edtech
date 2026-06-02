@@ -15,7 +15,9 @@ export function DeleteLessonButton({ lessonId }: { lessonId: string }) {
       disabled={pending}
       onClick={() => {
         if (!confirm("Delete this lesson plan permanently?")) return;
-        startTransition(() => deleteLesson(lessonId));
+        startTransition(() => {
+          void deleteLesson(lessonId);
+        });
       }}
     >
       {pending ? "Deleting…" : "Delete"}
