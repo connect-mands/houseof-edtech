@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
   const session = await auth();
-  const lessonsResult = await safeQuery(() => getPublicLessons());
+  const lessonsResult = await safeQuery(() => getPublicLessons(), "home:getPublicLessons");
   const featured = lessonsResult.ok ? lessonsResult.data.slice(0, 3) : [];
   const dbError = lessonsResult.ok ? null : lessonsResult.message;
 

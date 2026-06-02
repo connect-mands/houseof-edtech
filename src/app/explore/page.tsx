@@ -7,7 +7,7 @@ export const metadata = { title: "Explore" };
 export const dynamic = "force-dynamic";
 
 export default async function ExplorePage() {
-  const result = await safeQuery(() => getPublicLessons());
+  const result = await safeQuery(() => getPublicLessons(), "explore:getPublicLessons");
   const items = result.ok ? result.data : [];
 
   return (

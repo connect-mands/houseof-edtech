@@ -7,12 +7,70 @@ export function getDatabaseUrl(): string | undefined {
   return url && url.length > 0 ? url : undefined;
 }
 
+export function getDatabaseUrlSource(): "DATABASE_URL" | "POSTGRES_URL" | "POSTGRES_PRISMA_URL" | "none" {
+  if (process.env.DATABASE_URL?.trim()) return "DATABASE_URL";
+  if (process.env.POSTGRES_URL?.trim()) return "POSTGRES_URL";
+  if (process.env.POSTGRES_PRISMA_URL?.trim()) return "POSTGRES_PRISMA_URL";
+  return "none";
+}
+
 export function isLocalDatabaseUrl(url: string): boolean {
   return /localhost|127\.0\.0\.1/.test(url);
 }
 
 export function isNeonDatabaseUrl(url: string): boolean {
   return url.includes("neon.tech");
+}
+
+export function getMaskedDatabaseHost(): string {
+  const url = getDatabaseUrl();
+  if (!url) return "(not set)";
+  try {
+    const parsed = new URL(url.replace(/^postgresql:/i, "http:"));
+    const port = parsed.port ? `:${parsed.port}` : "";
+    return `${parsed.hostname}${port}${parsed.pathname}`;
+  } catch {
+    return "(invalid DATABASE_URL)";
+  }
+}
+
+export function isVercelRuntime(): boolean {
+  return process.env.VERCEL === "1" || process.env.VERCEL === "true";
+}
+
+function extractErrorCode(error: unknown): string | undefined {
+  if (!error || typeof error !== "object") return undefined;
+  if ("code" in error && typeof error.code === "string") return error.code;
+  if ("cause" in error && error.cause) return extractErrorCode(error.cause);
+  if (error instanceof AggregateError) {
+    for (const entry of error.errors) {
+      const code = extractErrorCode(entry);
+      if (code) return code;
+    }
+  }
+  if ("errors" in error && Array.isArray(error.errors)) {
+    for (const entry of error.errors) {
+      const code = extractErrorCode(entry);
+      if (code) return code;
+    }
+  }
+  return undefined;
+}
+
+function extractErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  return String(error);
+}
+
+/** Server-side diagnostics — always logged; never shown verbatim to users. */
+export function logDbError(error: unknown, context?: string): void {
+  console.error("DB ERROR:", error);
+  console.error("[db] context:", context ?? "unknown");
+  console.error("[db] message:", extractErrorMessage(error));
+  console.error("[db] code:", extractErrorCode(error) ?? "(none)");
+  console.error("[db] host:", getMaskedDatabaseHost());
+  console.error("[db] urlSource:", getDatabaseUrlSource());
+  console.error("[db] VERCEL:", isVercelRuntime());
 }
 
 export function postgresOptions(connectionString: string) {
@@ -24,29 +82,14 @@ export function postgresOptions(connectionString: string) {
   return {
     prepare: false as const,
     ssl: needsSsl ? ("require" as const) : undefined,
-    /** Serverless-friendly pool size on Vercel */
-    max: process.env.VERCEL ? 1 : 10,
+    max: isVercelRuntime() ? 1 : 10,
   };
 }
 
-export function formatDbConnectionHelp(): string {
-  const url = getDatabaseUrl() ?? "";
-
-  if (!url) {
-    if (process.env.VERCEL) {
-      return "DATABASE_URL is not set on Vercel. In your project → Settings → Environment Variables, add DATABASE_URL with your Neon connection string (from console.neon.tech), then redeploy.";
-    }
-    return "DATABASE_URL is missing. Add it to your .env file.";
+/** Short UI copy only — details go to server logs via logDbError. */
+export function formatDbUserMessage(): string {
+  if (!getDatabaseUrl()) {
+    return "Database is not configured. Set DATABASE_URL and redeploy.";
   }
-
-  if (process.env.VERCEL && isLocalDatabaseUrl(url)) {
-    return "DATABASE_URL on Vercel points to localhost, which will not work in production. Replace it with your Neon connection string in Vercel → Settings → Environment Variables, then redeploy.";
-  }
-
-  if (isNeonDatabaseUrl(url) || process.env.VERCEL) {
-    return "Cannot connect to the database. Confirm DATABASE_URL in Vercel matches Neon’s connection string (include ?sslmode=require), run migrations once from your machine (DATABASE_URL=\"your-neon-url\" npm run db:migrate), then redeploy.";
-  }
-
-  const port = url.match(/:(\d+)\//)?.[1] ?? "5433";
-  return `Database is not reachable locally. Start Docker Desktop, run "docker compose up -d", then "npm run db:migrate". Use port ${port} in .env, e.g. postgresql://lessonforge:lessonforge@localhost:${port}/lessonforge`;
+  return "Could not connect to the database. Check deployment logs for details.";
 }

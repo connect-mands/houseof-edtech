@@ -14,10 +14,13 @@ export type ActionState = {
 };
 
 export async function checkDatabaseConnection() {
-  return safeQuery(async () => {
-    await db.execute(sql`select 1`);
-    return true;
-  });
+  return safeQuery(
+    async () => {
+      await db.execute(sql`select 1`);
+      return true;
+    },
+    "checkDatabaseConnection",
+  );
 }
 
 export async function registerUser(
@@ -41,8 +44,9 @@ export async function registerUser(
 
   const email = parsed.data.email.toLowerCase();
 
-  const existingResult = await safeQuery(() =>
-    db.select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1),
+  const existingResult = await safeQuery(
+    () => db.select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1),
+    "registerUser:checkEmail",
   );
   if (!existingResult.ok) {
     return { success: false, message: existingResult.message };
@@ -52,12 +56,14 @@ export async function registerUser(
   }
 
   const passwordHash = await bcrypt.hash(parsed.data.password, 12);
-  const insertResult = await safeQuery(() =>
-    db.insert(users).values({
-      name: parsed.data.name,
-      email,
-      passwordHash,
-    }),
+  const insertResult = await safeQuery(
+    () =>
+      db.insert(users).values({
+        name: parsed.data.name,
+        email,
+        passwordHash,
+      }),
+    "registerUser:insert",
   );
   if (!insertResult.ok) {
     return { success: false, message: insertResult.message };

@@ -1,4 +1,4 @@
-import { formatDbConnectionHelp } from "@/lib/db/connection";
+import { formatDbUserMessage, logDbError } from "@/lib/db/connection";
 
 function hasDbErrorCode(value: unknown): boolean {
   if (!value || typeof value !== "object") return false;
@@ -29,17 +29,16 @@ export function isDbConnectionError(error: unknown): boolean {
   return false;
 }
 
-export { formatDbConnectionHelp };
-
-export async function safeQuery<T>(fn: () => Promise<T>): Promise<
-  | { ok: true; data: T }
-  | { ok: false; message: string }
-> {
+export async function safeQuery<T>(
+  fn: () => Promise<T>,
+  context = "safeQuery",
+): Promise<{ ok: true; data: T } | { ok: false; message: string }> {
   try {
     return { ok: true, data: await fn() };
   } catch (error) {
     if (isDbConnectionError(error)) {
-      return { ok: false, message: formatDbConnectionHelp() };
+      logDbError(error, context);
+      return { ok: false, message: formatDbUserMessage() };
     }
     throw error;
   }
