@@ -6,7 +6,6 @@ import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 import { loginSchema } from "@/lib/validations/lesson";
 import { isDbConnectionError } from "@/lib/db/safe-query";
-import { logDbError } from "@/lib/db/connection";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   trustHost: true,
@@ -46,10 +45,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             email: user.email,
           };
         } catch (error) {
-          if (isDbConnectionError(error)) {
-            logDbError(error, "authorize:credentials");
-            return null;
-          }
+          if (isDbConnectionError(error)) return null;
           throw error;
         }
       },
@@ -70,11 +66,3 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
   },
 });
-
-export async function requireAuth() {
-  const session = await auth();
-  if (!session?.user?.id) {
-    throw new Error("UNAUTHORIZED");
-  }
-  return session;
-}

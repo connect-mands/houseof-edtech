@@ -1,4 +1,4 @@
-import { formatDbUserMessage, logDbError } from "@/lib/db/connection";
+import { formatDbUserMessage } from "@/lib/db/connection";
 
 function hasDbErrorCode(value: unknown): boolean {
   if (!value || typeof value !== "object") return false;
@@ -24,20 +24,20 @@ function hasDbErrorCode(value: unknown): boolean {
 export function isDbConnectionError(error: unknown): boolean {
   if (hasDbErrorCode(error)) return true;
   if (error instanceof Error) {
-    return /authentication failed|ECONNREFUSED|connect|SSL/i.test(error.message);
+    return /authentication failed|ECONNREFUSED|ECONNRESET|ENOTFOUND|\bSSL\b/i.test(
+      error.message,
+    );
   }
   return false;
 }
 
 export async function safeQuery<T>(
   fn: () => Promise<T>,
-  context = "safeQuery",
 ): Promise<{ ok: true; data: T } | { ok: false; message: string }> {
   try {
     return { ok: true, data: await fn() };
   } catch (error) {
     if (isDbConnectionError(error)) {
-      logDbError(error, context);
       return { ok: false, message: formatDbUserMessage() };
     }
     throw error;

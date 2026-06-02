@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { checkDatabaseConnection } from "@/actions/auth";
 import { auth, signIn } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,18 +17,9 @@ export default async function LoginPage({
   if (session?.user) redirect("/dashboard");
 
   const params = await searchParams;
-  const dbStatus = await checkDatabaseConnection();
 
   return (
     <div className="mx-auto flex max-w-md flex-col px-4 py-16">
-      {!dbStatus.ok && (
-        <p
-          className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950"
-          role="alert"
-        >
-          {dbStatus.message}
-        </p>
-      )}
       <Card>
         <CardHeader>
           <CardTitle>Sign in</CardTitle>

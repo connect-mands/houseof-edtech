@@ -7,7 +7,7 @@ export const metadata = { title: "Explore" };
 export const dynamic = "force-dynamic";
 
 export default async function ExplorePage() {
-  const result = await safeQuery(() => getPublicLessons(), "explore:getPublicLessons");
+  const result = await safeQuery(() => getPublicLessons());
   const items = result.ok ? result.data : [];
 
   return (
@@ -17,18 +17,11 @@ export default async function ExplorePage() {
         Public lesson plans shared by educators. Read-only for visitors; authors manage their own copies.
       </p>
 
-      {!result.ok && (
-        <p className="mt-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950" role="alert">
-          {result.message}
-        </p>
-      )}
-
-      {result.ok && items.length === 0 && (
+      {items.length === 0 ? (
         <p className="mt-12 text-center text-slate-600 dark:text-slate-400">
           No public lessons yet. Be the first to publish one!
         </p>
-      )}
-      {result.ok && items.length > 0 && (
+      ) : (
         <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {items.map(({ lesson, authorName }) => (
             <LessonCard

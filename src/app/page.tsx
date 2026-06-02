@@ -10,20 +10,11 @@ export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
   const session = await auth();
-  const lessonsResult = await safeQuery(() => getPublicLessons(), "home:getPublicLessons");
+  const lessonsResult = await safeQuery(() => getPublicLessons());
   const featured = lessonsResult.ok ? lessonsResult.data.slice(0, 3) : [];
-  const dbError = lessonsResult.ok ? null : lessonsResult.message;
 
   return (
     <div>
-      {dbError && (
-        <div
-          className="border-b border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-100"
-          role="alert"
-        >
-          {dbError}
-        </div>
-      )}
       <section className="border-b border-slate-200 bg-gradient-to-b from-indigo-50 to-slate-50 dark:border-slate-800 dark:from-indigo-950/40 dark:to-slate-950">
         <div className="mx-auto max-w-6xl px-4 py-16 md:py-24">
           <p className="mb-3 text-sm font-semibold uppercase tracking-wide text-indigo-600">

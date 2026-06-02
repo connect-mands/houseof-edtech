@@ -68,7 +68,6 @@ Activities: ${activities}`;
 
     return NextResponse.json({ suggestion: text.trim() });
   } catch (error) {
-    console.error("[api/ai/suggest]", error);
     const { message, status } = mapAiProviderError(error);
     return NextResponse.json({ error: message }, { status });
   }
