@@ -83,18 +83,22 @@ Open [http://localhost:3000](http://localhost:3000).
 | CI/CD | `.github/workflows/ci.yml` |
 | Deployment | Vercel-ready (see below) |
 
-## Deploy to Vercel
+## Deploy to Vercel + Neon
 
 1. Push this repo to GitHub (`.env` stays local; it is not pushed).
-2. Import the project in [Vercel](https://vercel.com).
-3. Add **Vercel Postgres** (or Neon) and copy the same variable names from your local `.env` into Vercel.
-4. Run migrations against production (once):
+2. Create a database at [Neon](https://console.neon.tech) and copy the **connection string** (use the pooled URL or add `?sslmode=require`).
+3. In Vercel → **Settings → Environment Variables**, set:
+   - `DATABASE_URL` = your Neon URL (must **not** be `localhost`)
+   - `AUTH_SECRET`, `NEXT_PUBLIC_*`, optional `GROQ_API_KEY`
+4. Apply the schema **once** from your machine (not Docker):
 
    ```bash
-   DATABASE_URL="your-production-url" npm run db:migrate
+   DATABASE_URL="postgresql://user:pass@ep-xxx.region.aws.neon.tech/neondb?sslmode=require" npm run db:migrate
    ```
 
-6. Deploy — Vercel builds with `next build` automatically.
+5. Redeploy on Vercel after saving env vars.
+
+**Common mistake:** leaving `DATABASE_URL` as `localhost` on Vercel — the app cannot reach your laptop’s Postgres. Use the Neon host (`*.neon.tech`) only in production.
 
 GitHub Actions runs lint, unit tests, and build on every push/PR.
 
